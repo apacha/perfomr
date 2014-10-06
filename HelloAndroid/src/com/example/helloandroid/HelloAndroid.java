@@ -90,7 +90,7 @@ public class HelloAndroid extends Activity {
 				// TODO Auto-generated method stub
 
 	            bundle.putString("source", "file");
-	            bundle.putInt("res", 4000000);
+	            bundle.putInt("res", 7000000);
 	            
 	            myIntent = new Intent(view.getContext(), Precomp.class);
 	            myIntent.putExtras(bundle);
@@ -101,7 +101,7 @@ public class HelloAndroid extends Activity {
 		});
 
         
-	   // fromFile.performClick();
+	  // fromFile.performClick();
         
     }
     
@@ -113,7 +113,7 @@ public class HelloAndroid extends Activity {
                 Bundle bundle = new Bundle();
                 bundle.putString("source", "camera");
                 bundle.putString("uri", outputFileUri.toString());
-                bundle.putInt("res", 5000000);
+                bundle.putInt("res", 7000000);
                 
                 myIntent = new Intent(this, Precomp.class);
                 myIntent.putExtras(bundle);

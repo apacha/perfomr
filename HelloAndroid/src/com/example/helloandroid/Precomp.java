@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Stack;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -49,82 +48,60 @@ import org.opencv.imgproc.Imgproc;
 
 public class Precomp extends Activity {
 
-    boolean test = false;
-	String uriString;
-	Uri uri;
-	String keystring = "";
-	String durstring = ":";
-	int dur = 0;
-	String error = "";
-	boolean hasError = false;
-	boolean nextisbeam = false;
-	boolean success = false;
-	int imgW = 320;
-	int imgH = 480;
-	int height, width, N, inputheight, inputwidth;
-	int feedback = 1234;
-	int resolution;
-	int valid = -1;
-	int num_notes = 0;
-	String offsets = "";
-	String filenamestring = "";
-	String sigstring = "";
-	int l = 0;
-	int staff_height = -1;
-	int strip_height = 0;
-	int staff_space = -1;
-	int numerator = 0;
-	int denominator = 0;
-	int limit = 0;
-	int num_lines = 0;
-	int num_staves = 0;
-	int first_sym = 9999;
-	int pos = 0;
-	float skew = 0;
-	float somevalue = 0;
-	float ratio = 0;
-	int clef_pos = 0;
-	long startTime, stopTime, elapsedTime;
-	TextView text;
-	TextView titletext;
-	int[] pixels;
-	int[] projection;
-	int[] lines;
-	int[] result;
-	int[][] staves;
+	private String uriString;
+	private Uri uri;
+	private String keystring = "";
+	private String durstring = ":";
+	private int dur = 0;
+	private boolean nextisbeam = false;
+	private int height, width, N;
+	private int resolution;
+	private int valid = -1;
+	private int num_notes = 0;
+	private String sigstring = "";
+	private int l = 0;
+	private int staff_height = -1;
+	private int strip_height = 0;
+	private int staff_space = -1;
+	private int num_lines = 0;
+	private int num_staves = 0;
+	private int first_sym = 9999;
+	private float skew = 0;
+	private float ratio = 0;
+	private int clef_pos = 0;
+	private long startTime, stopTime, elapsedTime;
+	private TextView text;
+	private TextView titletext;
+	private int[] pixels;
+	private int[] projection;
+	private int[] lines;
+	private int[][] staves;
 	private Bitmap bitmap;
     private ProgressDialog progressDialog;
     private AlertDialog alertDialog;
-	//private ImageView image;
-	Stack<Integer> s;
-	boolean recognition;
-	boolean highres;
-	boolean firststaff = true;
-	String src;
-	Message msg;
-	Uri imageUri;   
-	Midifile mf;
-	int num_symbols = -1;
-	String notestring = "";
-	String sig_y;
-	String l0, l1, l2, l3, l4;
-	MediaPlayer mp;
-	Button playButton;
-	Button stopButton;
-	String source;
-	Bundle bundle;
-	ImageView image;
-
-	Bitmap resultbmp;
-	Bitmap resultbmp2;
-	Bitmap staff_bmp;
-	
+    private boolean firststaff = true;
+    private String src;
+    private Message msg;
+    private Midifile mf;
+    private MediaPlayer mp;
+    private Button playButton;
+    private Bundle bundle;
+    private ImageView image;
+    private Bitmap resultbmp;
+    private Bitmap staff_bmp;
+    private int cnt = -1;
+    private int counter;
+    private int IMAGE_MAX_SIZE;
+    private String filename;
+    private String source;
+	File file = null;
 
 	int[] tpl_clef, tpl_dot, tpl_4, tpl_2, tpl_1, tpl_rest, tpl_qu_rest, tpl_sharp, tpl_flat;
 	int w_clef, w_dot, w_4, w_2, w_1, w_rest, w_qu_rest, w_sharp, w_flat;
 	int h_clef, h_dot, h_4, h_2, h_1, h_rest, h_qu_rest, h_sharp, h_flat;
 
-	ArrayList<Symbol> symbols = new ArrayList<Symbol>();
+	private ArrayList<String> filelist = new ArrayList<String>();
+	private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
 	int[][] keys = new int[7][2];
 	int key_cnt;
 	
@@ -154,7 +131,7 @@ public class Precomp extends Activity {
 			source = "Photo";
 	        try {
 
-	            final int IMAGE_MAX_SIZE = resolution;
+	            IMAGE_MAX_SIZE = resolution;
 	        	Uri tmp_uri = Uri.parse(uriString);
 				uriString = tmp_uri.getPath();
 	        	
@@ -235,12 +212,58 @@ public class Precomp extends Activity {
 		
 		else {
 			
-			// input: FILE	        	
+			// input: MANUAL FILE MODE	        	
+			
 			Intent intent = new Intent();
 	        intent.setType("image/*");
 	        intent.setAction(Intent.ACTION_GET_CONTENT);
 			startActivityForResult(Intent.createChooser(intent, "Select Picture"), 1);
+			
 		
+			/*
+			// DEBUGGING MODE - ALL IMAGES ARE PROCESSED
+			
+			File sdcard = Environment.getExternalStorageDirectory();
+        	File dir = new File (sdcard.getAbsolutePath() + "/perfomr/edited/maerzen");
+	        File list[] = dir.listFiles();
+	        for (int i = 0; i < list.length; i++) {
+	        	filelist.add(list[i].getName());
+	        }
+	        
+			try {
+								       
+		        //for (int i = 0; i < list.length; i++) {
+				for (int i = 4; i < 5; i++) {
+		        	cnt++;
+		        	filename = filelist.get(i);     	
+		        	source = list[i].toString();
+		        	bitmap = BitmapFactory.decodeFile(source);
+
+		        	height = bitmap.getHeight();
+		        	width = bitmap.getWidth();
+		        	int size = height*width;
+		        	float ratio = (float) size/10000000;
+		        	if (ratio > 1.0) {
+		        			
+	        			height = (int) (height / ratio);
+	        			width = (int) (width / ratio);
+	        			bitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);    	
+		        		
+		        	}
+		        	
+		        	precompute();
+		        	
+		        }			
+	        		
+    		} catch (Exception e) {
+			    	e.printStackTrace();
+		        	msg = Message.obtain();
+					msg.what = 667;
+					msg.obj = source;
+					progressHandler.sendMessage(msg);
+			}
+			
+			*/
 		}
 		
 			
@@ -349,8 +372,6 @@ public class Precomp extends Activity {
     		else if (msg.what == 666) {
     			progressDialog.dismiss();
     			String errormsg = (String) msg.obj;
-    			//String errormsg = String.valueOf("NUMSTAVES="+num_staves+", SKEW="+skew+"\nstaff_height = " + staff_height + "\nstaff_space = " + staff_space + "\nnum_lines = " + num_lines);
-    			//String errormsg = String.valueOf("width = "+width+", height = "+height);
 
     			alertDialog.setTitle("Oops!");
     			alertDialog.setMessage(errormsg);
@@ -368,6 +389,12 @@ public class Precomp extends Activity {
     			
     		}
     		else if (msg.what == 667) {
+    			
+    			if (resolution <= 1000000) {
+    				finish();
+    				return;
+    			}
+    			
     			progressDialog.dismiss();
     			String errormsg = (String) msg.obj;
     			
@@ -461,16 +488,15 @@ public class Precomp extends Activity {
     			startTime = System.currentTimeMillis();
 
     			height = bitmap.getHeight();
-    			inputheight = height;
     			width = bitmap.getWidth();
-    			inputwidth = width;
     			
     			try {
 
     				cropImage2(bitmap);
-    				resultbmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-    				resultbmp.setPixels(pixels, 0, width, 0, 0, width, height);
-    				saveToFile(resultbmp, "post_cropping.png");    
+    				//dilateImage(bitmap);
+    				//resultbmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    				//resultbmp.setPixels(pixels, 0, width, 0, 0, width, height);
+    				//saveToFile(resultbmp, filename + "_post_cropping");    
     					    			
 	    			// downscale image if necessary to prevent OOM error
 	    			//handler.sendEmptyMessage(1);
@@ -484,28 +510,33 @@ public class Precomp extends Activity {
 	    			progressHandler.sendMessage(msg);
 	    			
 		        	int valid = detectSkew();	
-
 		        	
 		        	if (valid != -1 && num_staves > 0) {
 		        		msg = Message.obtain();
 		    			msg.what = 3;    			
 		    			progressHandler.sendMessage(msg);
-		    			loadTemplates();
+		    			
+		    			// Detected staves are forwarded to the recognition engine.
 		    			computeStaves();
 		    			
 		    			handler.sendEmptyMessage(0);
-		    					    			
 		            	File sdcard = Environment.getExternalStorageDirectory();
 		            	File dir = new File (sdcard.getAbsolutePath() + "/perfomr");
 		            	dir.mkdirs();
-		            	File file = new File(dir, "output.mid");
-			        	
-		    			//staff_bmp = bitmap;
+		            	//String[] parts = filename.split("\\.");
+		            	String midiname = "output.mid";
+		            	File midifile = new File(dir, midiname);
+		            	
 			        	try {
-			                mf.writeToFile("output.mid");
+		    			        		    			
+			                mf.writeToFile(midiname);
 			                
 			    	    } catch (Exception e) {
 			    	    	e.printStackTrace();
+			    			msg = Message.obtain();
+			    			msg.what = 667;
+							msg.obj = filename;
+			    			progressHandler.sendMessage(msg);
 			    	    }
 		    			
 			        	FileInputStream fis = null;
@@ -513,7 +544,7 @@ public class Precomp extends Activity {
 			    		
 		    			mp = new MediaPlayer();
 		    			try {
-							fis = new FileInputStream(file);
+							fis = new FileInputStream(midifile);
 							fd = fis.getFD();
 							mp.setDataSource( fd );
 							mp.prepare();
@@ -548,16 +579,12 @@ public class Precomp extends Activity {
 		    	                mp.seekTo(0);
 		    	            }
 		    	        });
-		    			
-	
-		    			
-	
-		    			
+
 		        	}
 		        	else {	        		
 		        		msg = Message.obtain();
 		    			msg.what = 666;
-		    			msg.obj = "Notation could not be detected on the input image. Resolution might be too low.";
+		    			msg.obj = "Notation could not be detected on the input image. Resolution might be too low." + staff_height + " " + staff_space;
 		    			progressHandler.sendMessage(msg);
 		        	}
 		        	
@@ -615,7 +642,7 @@ public void cropImage(Bitmap bmp) {
 		
 		//Imgproc.medianBlur(edgeM, edgeM, 7);
 		Imgproc.threshold(edgeM, edgeM, 127, 255, Imgproc.THRESH_OTSU);
-		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2,5), new Point(-1,-1));
+		Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(10,50), new Point(-1,-1));
 		Mat edgeM2 = edgeM.clone();
 
 		Mat cont = new Mat();
@@ -677,9 +704,17 @@ public void cropImage(Bitmap bmp) {
 		resultbmp.getPixels(pixels, 0, roi.width, 0, 0, roi.width, roi.height);  
 		bitmap_ARGB888.recycle();
 		resultbmp.recycle();
-		
-		
+				
 	}
+
+public void dilateImage(Bitmap bmp) {
+	
+	Mat inputM = Utils.bitmapToMat(bmp);
+	Imgproc.dilate(inputM, inputM, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(500, 500)));
+	Utils.matToBitmap(inputM, bmp);
+	
+	
+}
 
 public void cropImage2(Bitmap bmp) {
 	
@@ -702,7 +737,6 @@ public void cropImage2(Bitmap bmp) {
 	Rect maxroi = new Rect();
 	Rect secroi = new Rect();
 	Rect roi = new Rect();
-	Rect temproi = new Rect();
 	boolean first =true;
 	
 	
@@ -760,7 +794,7 @@ public void cropImage2(Bitmap bmp) {
 	
 	//Imgproc.medianBlur(edgeM, edgeM, 7);
 	Imgproc.threshold(edgeM, edgeM, 127, 255, Imgproc.THRESH_OTSU);
-	kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(2,5), new Point(-1,-1));
+	kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(10,50), new Point(-1,-1));
 	edgeM2 = edgeM.clone();
 
 	cont = new Mat();
@@ -844,110 +878,6 @@ public void cropImage2(Bitmap bmp) {
 		
 	}  
     
-    public Bitmap loadTemplate(String filename) {
-    	
-    	Bitmap tplbmp = null;
-    	
-    	try {
-        	File sdcard = Environment.getExternalStorageDirectory();
-        	File dir = new File (sdcard.getAbsolutePath() + "/perfomr/data/templates");
-        	File file = new File(dir, filename);
-        	String source = file.toString();
-        	tplbmp = BitmapFactory.decodeFile(source);
-        	       	
-    		} catch (Exception e) {
-			    	e.printStackTrace();
-			}
-	    	catch (OutOfMemoryError e) {
-		    	msg = Message.obtain();
-				msg.what = 667;
-				msg.obj = "Sorry, I ran out of memory. Do you want me to try at a lower resolution?";
-				progressHandler.sendMessage(msg);
-				
-		    }
-    		
-    		return tplbmp;
-    	
-    }
-    
-    
-    private void loadTemplates() {
-		
-		Bitmap tplbmp;
-		
-    	tplbmp = loadTemplate("sym_clef.png");
-		h_clef = 8*staff_space;
-    	ratio = (float) tplbmp.getHeight()/h_clef;
-    	w_clef = (int) (tplbmp.getWidth() / ratio);
-    	tpl_clef = new int[w_clef*h_clef];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_clef, h_clef, false);
-    	tplbmp.getPixels(tpl_clef, 0, w_clef, 0, 0, w_clef, h_clef);
-    	
-    	tplbmp = loadTemplate("sym_dot.png");
-    	h_dot = 4*staff_height;
-    	ratio = (float) tplbmp.getHeight()/h_dot;
-    	w_dot = (int) (tplbmp.getWidth() / ratio);
-    	tpl_dot = new int[w_dot*h_dot];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_dot, h_dot, false);
-    	tplbmp.getPixels(tpl_dot, 0, w_dot, 0, 0, w_dot, h_dot);
-		
-    	tplbmp = loadTemplate("nh1_4.png");
-    	h_4 = staff_space+2*staff_height;
-    	ratio = (float) tplbmp.getHeight()/h_4;
-    	w_4 = (int) (tplbmp.getWidth() / ratio);
-    	tpl_4 = new int[w_4*h_4];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_4, h_4, false);
-    	tplbmp.getPixels(tpl_4, 0, w_4, 0, 0, w_4, h_4);
-    	
-    	tplbmp = loadTemplate("nh1_2.png");
-    	h_2 = staff_space+2*staff_height;
-    	ratio = (float) tplbmp.getHeight()/h_2;
-    	w_2 = (int) (tplbmp.getWidth() / ratio);
-    	tpl_2 = new int[w_2*h_2];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_2, h_2, false);
-    	tplbmp.getPixels(tpl_2, 0, w_2, 0, 0, w_2, h_2);
-    		
-    	tplbmp = loadTemplate("nh1_1.png");
-    	h_1 = staff_space+2*staff_height;
-    	ratio = (float) tplbmp.getHeight()/h_1;
-    	w_1 = (int) (tplbmp.getWidth() / ratio);
-    	tpl_1 = new int[w_1*h_1];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_1, h_1, false);
-    	tplbmp.getPixels(tpl_1, 0, w_1, 0, 0, w_1, h_1);
-    	
-    	tplbmp = loadTemplate("rest.png");
-    	h_rest = staff_space/2;
-    	ratio = (float) tplbmp.getHeight()/h_rest;
-    	w_rest = (int) (tplbmp.getWidth() / ratio);
-    	tpl_rest = new int[w_rest*h_rest];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_rest, h_rest, false);
-    	tplbmp.getPixels(tpl_rest, 0, w_rest, 0, 0, w_rest, h_rest);
-    	
-    	tplbmp = loadTemplate("qu_rest.png");
-    	h_qu_rest = staff_space*3+3*staff_height;
-    	ratio = (float) tplbmp.getHeight()/h_qu_rest;
-    	w_qu_rest = (int) (tplbmp.getWidth() / ratio);
-    	tpl_qu_rest = new int[w_qu_rest*h_qu_rest];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_qu_rest, h_qu_rest, false);
-    	tplbmp.getPixels(tpl_qu_rest, 0, w_qu_rest, 0, 0, w_qu_rest, h_qu_rest);
-    	
-    	tplbmp = loadTemplate("acc_sh.png");
-    	h_sharp = staff_space/2;
-    	ratio = (float) tplbmp.getHeight()/h_sharp;
-    	w_sharp = (int) (tplbmp.getWidth() / ratio);
-    	tpl_sharp = new int[w_sharp*h_sharp];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_sharp, h_sharp, false);
-    	tplbmp.getPixels(tpl_sharp, 0, w_sharp, 0, 0, w_sharp, h_sharp);
-		
-    	tplbmp = loadTemplate("acc_fl.png");
-    	h_flat = staff_space/2;
-    	ratio = (float) tplbmp.getHeight()/h_flat;
-    	w_flat = (int) (tplbmp.getWidth() / ratio);
-    	tpl_flat = new int[w_flat*h_flat];
-    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_flat, h_flat, false);
-    	tplbmp.getPixels(tpl_flat, 0, w_flat, 0, 0, w_flat, h_flat);
-    	
-	}
 	
     public void saveToFile (Bitmap bitmap, String fileName) {
     	
@@ -1007,12 +937,7 @@ public void cropImage2(Bitmap bmp) {
     			current++;
     			
     		}
-    			    	
-    		l0 = String.valueOf(lines[0]);
-    		l1 = String.valueOf(lines[1]);
-    		l2 = String.valueOf(lines[2]);
-    		l3 = String.valueOf(lines[3]);
-    		l4 = String.valueOf(lines[4]);
+
     		int pitch;
     		int[] key;
     		
@@ -1069,15 +994,21 @@ public void cropImage2(Bitmap bmp) {
     	// 0 = global threshold
     	deskewImage(pixels);   
     	
+    	/*
 		resultbmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
 		resultbmp.setPixels(pixels, 0, width, 0, 0, width, height);
-		saveToFile(resultbmp, "post_deskewing.png");
+		saveToFile(resultbmp, "post_deskewing1.png");
+		*/
     	
     	binariseImage(pixels);
 		
+    	/*
 		resultbmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
 		resultbmp.setPixels(pixels, 0, width, 0, 0, width, height);
 		saveToFile(resultbmp, "post_binarisation.png");
+		*/
+		
+		
     	
     	//pixels = smoothImage(pixels, height, width);
     	projection = horizontalProjection(pixels, height, width);
@@ -1086,9 +1017,11 @@ public void cropImage2(Bitmap bmp) {
     	int[] staff_pos = new int[height];
     	valid = estimateStaffs(pixels, height, width);
     	
+    	/*
 		resultbmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
 		resultbmp.setPixels(pixels, 0, width, 0, 0, width, height);
 		saveToFile(resultbmp, "post_eststaffs.png");
+		*/
     	
     	if (valid != -1) {
     		staff_pos = removeStaves(projection, height, width);
@@ -1097,9 +1030,11 @@ public void cropImage2(Bitmap bmp) {
     			
     	}
     	
+    	/*
 		resultbmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
 		resultbmp.setPixels(pixels, 0, width, 0, 0, width, strip_height);
 		saveToFile(resultbmp, "post_removestaffs.png");
+		*/
     	
     	return valid;
     	    	
@@ -1339,7 +1274,7 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 			    										
 			    										for (int j = 0; j < staff_space; j++) {
 				    										
-			    											if (idx+(j*width) < N) {
+			    											if (idx+(j*width) < N && idx-(j*width) >= 0) {
 				    											
 					    										if (staff[idx-(j*width)] == 0)
 					    											off_n++;
@@ -1358,11 +1293,15 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 				    										
 				    										for (int j = 0; j < staff_space; j++) {
 					    										
-					    										if (staff[idx-(j*width)] == 0)
-					    											off_n++;
-					    										if (staff[idx+(j*width)] == 0)
-					    											off_s++;
-					    												    										
+				    											if (idx+(j*width) < N && idx-(j*width) >= 0) {
+					    															    											
+						    										if (staff[idx-(j*width)] == 0)
+						    											off_n++;
+						    										if (staff[idx+(j*width)] == 0)
+						    											off_s++;
+				    											}
+				    											else
+				    												break;
 					    									}
 					    									v_adj = (off_s - off_n) / 2;
 					    									staff[idx] = (255 << 16) | (0 << 8) | 0;
@@ -1782,6 +1721,8 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
     	
     	if (num_cnd > 0) {
     		
+    		counter++;
+    		
     		// FIND PROLONGATION DOTS
     		   		
     		matchingThreshold = 0.4f;
@@ -1909,7 +1850,6 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
     				dur *= 1.5;
     			Symbol note = new Symbol(x_pos, n, dur);
     			symbols.add(note);
-    			num_symbols++;
     			
     		} // end for
     		
@@ -1944,7 +1884,7 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 				if (key == 2)
 					return "G Major";
 			}
-			return "size1";
+			return "Key position error.";
 		}
 		else {
 						
@@ -2325,7 +2265,7 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 		return n;
 	  
   }
-    
+  /*  
   public int matchClefs(int[] staff, int[] tpl, int[] proj, int[] lines, int min, int new_h, int new_w, float matchingThreshold, String mode, float vote) {
     	
     	int histThr = min + 3*staff_space;
@@ -2376,7 +2316,7 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
     								if (idx > 0 && idx < staff.length) {
     								
 	    								valI = (staff[(y+y2)*width+x+x2] >> 16) & 0xff;
-	    								//staff[(y+y2)*width+x+x2] = (255 << 16) | (0 << 8) | 0;
+	    								staff[(y+y2)*width+x+x2] = (255 << 16) | (0 << 8) | 0;
 	    								valT = (tpl[y2*new_w+x2] >> 16) & 0xff;
 	    								
 	    								if (Math.abs(valI-valT) > 128) {	     								
@@ -2428,6 +2368,44 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
     	return pos;
     	
     }
+  */
+  public int matchClefsSimple(int[] staff, int[] tpl, int[] proj, int[] lines, int min, int new_h, int new_w, float matchingThreshold, String mode, float vote) {
+  	
+  	int histThr = min + (int)(2.5*staff_space);
+  	int cnt = 0;
+  	int pos = 0;
+
+ 	for (int x = 0; x < width; x++) {
+  			
+ 		cnt = 0;
+ 		
+ 		while (proj[x] > histThr && x < width) {
+ 			cnt++;
+ 			x++;
+ 			
+ 			if (cnt > 0.5*staff_space) {
+ 	 			pos = x-cnt/2;
+ 	 			break;
+ 	 		}
+ 	 		 			
+ 		} 		 		
+ 		
+ 		if (pos != 0)
+ 			break;
+  	}
+ 	
+	/*
+ 	int idx;
+ 	for (int j = 0; j < strip_height; j++) {
+		
+		idx = pos + j*width;
+		staff[idx]= (255 << 16) | (0 << 8) | 0;
+	}
+  	*/
+  	  	
+  	return pos;
+  	
+  }
    
   public int[][] matchRests(int[] staff, int[] tpl, int[] proj, int[] lines, int min, int new_h, int new_w, float matchingThreshold, int pos) {
 	  	
@@ -2743,26 +2721,43 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 	  	int i = 0;
 	  	int y = 0, x = 0;
 	  	int upper, lower, left, right;
-		int cnt = 0;
+		int lastpos = 0;
+		boolean found = false;
 	  		
 		// specify boundaries of matching window
 		upper = Math.max(0, lines[0]-3*staff_space);
-		lower = lines[4]+staff_space;
-		left = clef_pos+3*staff_space;
-		right = first_sym-3*staff_space;
+		lower = Math.min(lines[4]+staff_space, strip_height);
+		left = clef_pos+(int)(2.5*staff_space);
+		right = left + 6*staff_space;
 	
-		i = left;		
-		while (i < right && cnt < 1.5*staff_space) {
+		i = left;
+		lastpos = i;
+		/*
+		for (y = 0; y < strip_height-1; y++)	{			  			
+				staff[y*width + left] = (255 << 16) | (0 << 8) | 0;
+			}
+		*/
+		
+		while (i < right && (i-lastpos) < 3*staff_space) {
 			
-			if (proj[i] > 2*staff_space && proj[i] < 4*staff_space) {
-
+			found = false;
+			
+			if (proj[i] > (int)(2*staff_space) && proj[i] < 4*staff_space) {
+				
+				/*
+				for (y = 0; y < strip_height-1; y++)	{			  			
+						staff[y*width + i] = (0 << 16) | (255 << 8) | 0;
+					}
+				*/
+		
 				// perform vertical projection
-				int w = 2*staff_space;
+				int w = 2*staff_space+1;
+				int w_qu = (int)(staff_space/2);
 				
 				int[] proj2 = new int[w];
 				int x3 = 0;
-		  		for (int x2 = i; x2 < i+2*staff_space; x2++) {  			
-		  			for (int y2 = upper; y2 < lower; y2++) {
+		  		for (int x2 = i-w_qu; x2 < i+staff_space+w_qu; x2++) {  			
+		  			for (int y2 = upper; y2 < lower-1; y2++) {
 
 		  				if (staff[y2*width+x2] == 0)
 		  					proj2[x3]++;
@@ -2777,6 +2772,7 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 				// zero crossing function - LOCAL MINIMA
 				
 				int num_lows = 0;
+				int num_peaks = 0;
 				int max = staff_space;
 				int last_pos = 0;
 				int[] minima = new int[20];
@@ -2810,7 +2806,6 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 					
 				}			
 
-				somevalue = num_lows;
 				int j = 0;
 				int max_pos = -1;
 				int sum = 0;
@@ -2821,7 +2816,7 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 					
 					// zero crossing function - LOCAL MAXIMA
 					
-					int num_peaks = 0;
+					num_peaks = 0;
 					min = (int) 2*staff_space;
 					last_pos = 0;
 					
@@ -2841,16 +2836,16 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 									num_peaks++;
 									last_pos = j;
 								}
-								else {
-									
-									if (j-last_pos > 0.3*staff_space) {
-										num_peaks++;
-										last_pos = j;
-									}
-									else if (proj2[last_pos] < proj2[j])
-										last_pos = j;
-									
+							else {
+								
+								if (j-last_pos > 0.3*staff_space) {
+									num_peaks++;
+									last_pos = j;
 								}
+								else if (proj2[last_pos] < proj2[j])
+									last_pos = j;
+								
+							}
 							
 						}
 						
@@ -2867,30 +2862,19 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 						}
 					}
 					
-					j = x;
+					j = x; // local max
 					
 					if (num_peaks == 2) {
 						// is sharp
-						/*
-						for (x = i; x < i+staff_space; x++) {  			
-				  			for (y = upper; y < lower; y++) {
-					  			
-				  				if (staff[y*width+x] == 0)
-				  					staff[y*width + x] = (255 << 16) | (0 << 8) | 0;
-					  		}
-				  		}*/
-						
-
-						
+								
 						int span = 3*staff_space + staff_height;
 						
-						
-			  			for (y = upper; y < lower-span; y++) {
+						for (y = upper; y < lower-span; y++) {
 								
 		  					sum = 0;
 		  					
 							for (y2 = 0; y2 < span; y2++) {									 					
-								if (staff[(y+y2)*width+x] == 0)
+								if (staff[(y+y2)*width+j] == 0)
 									sum++;
 							}
 							
@@ -2901,34 +2885,30 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 							}
 			  				
 			  			}		  			
-			  			
-			  					
-				  			for (x = 0; x < width; x++)				  			
-				  					staff[max_pos*width + x] = (255 << 16) | (0 << 8) | 0;
-				  			for (y = 0; y < strip_height; y++)	{			  			
+			  				
+						/*
+			  			for (y = 0; y < strip_height-1; y++)	{			  			
 			  				if (staff[y*width + j] == 0)
 				  				staff[y*width + j] = (255 << 16) | (0 << 8) | 0;
-				  			}
+			  			}
+			  			*/
+			  			
 			  			
 			  			cnt = 0;
 				    	keys[key_cnt][0] = 2;
 				    	keys[key_cnt][1] = getNoteMIDIVal(max_pos);
 				    	key_cnt++;
 				    	sigstring += "#";
+				    	clef_pos = j;
+				    	lastpos = j;
+				    	found = true;
+				    	break;
 						
 					}
 					
 					else if (num_peaks == 1){
 						// is flat
-						/*
-						for (x = i; x < i+staff_space; x++) {  			
-				  			for (y = upper; y < lower; y++) {
-					  			
-				  				if (staff[y*width+x] == 0)
-				  					staff[y*width + x] = (0 << 16) | (255 << 8) | 0;
-					  		}
-				  		}
-						*/		
+	
 						int span = 3*staff_space + staff_height;
 						
 			  			for (y = upper; y < lower-span; y++) {
@@ -2947,29 +2927,37 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 							}
 			  				
 			  			}
-			  			
-						staff[max_pos*width + x] = (255 << 16) | (0 << 8) | 0;
+			  					
+			  			/*
+			  			for (y = 0; y < strip_height-1; y++)	{			  			
+			  				if (staff[y*width + j] == 0)
+			  					staff[y*width + j] = (255 << 16) | (0 << 8) | 0;
+			  			}
+			  			*/
 			  			
 			  			cnt = 0;
 			  			keys[key_cnt][0] = 1;
 				    	keys[key_cnt][1] = getNoteMIDIVal(max_pos);
 				    	key_cnt++;
 				    	sigstring += "b";
+				    	clef_pos = j;
+				    	lastpos = j;
+				    	found = true;
+				    	break;
 					}
 					
 				}
-				
-				i+=1.5*staff_space;
-			
+				i+=staff_space;		
 			}
-			else
-				cnt++;
 		
-		i++;
+		if (!found)
+			i++;
+		
 		}
 	  	
 	  }
 	  
+  /*
   
   public int matchTimeSignature(int[] staff, int[] proj, int[] lines, int clef_pos, float matchingThreshold) {
 	  	
@@ -3143,6 +3131,8 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 	  	return pos;
 	  	
 	  }
+	  
+	  */
   
   public int[] locateBars(int[] staff, int[] proj, int min) {
   	
@@ -3173,8 +3163,11 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
   	return boundaries;
   	
   }  
+   
   
     public void identifySymbols(int[] staff_old, int staff_num, int[] lines, int height, int width)  {
+    	  	
+    	loadTemplates();
     	
     	//strip_height = Math.min(height, lines[4]+3*staff_space);
     	int[] staff = new int[width*height];
@@ -3205,10 +3198,12 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
     			y--;
     		}    	   		
     	}
-    	      	
+    	
+    	/*
 		resultbmp = Bitmap.createBitmap(width, strip_height, Bitmap.Config.RGB_565);
 		resultbmp.setPixels(tmp, 0, width, 0, 0, width, strip_height);
 		saveToFile(resultbmp, "post_vertproj_"+staff_num+".png");
+		*/
     	
     	// get global minimum to estimate noise
     	int min = -1;
@@ -3224,48 +3219,69 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
     	float vote = 0;
     	int duration;   	
 
+    	// CLEFS    
+    	
     	if (firststaff) {
-	    	matchingThreshold = 0.3f;    	
-			while (pos == 0 && matchingThreshold < 0.5f) {
-	    		pos = matchClefs(staff, tpl_clef, proj, lines, min, h_clef, w_clef, matchingThreshold, "clef", vote);
-	       		matchingThreshold += 0.1f;
-			}
-			clef_pos = pos;
+	    	//matchingThreshold = 0.3f;    	
+			//while (pos == 0 && matchingThreshold < 0.5f) {
+	    	//	pos = matchClefs(staff, tpl_clef, proj, lines, min, h_clef, w_clef, matchingThreshold, "clef", vote);
+	       	//	matchingThreshold += 0.1f;
+			//}
+			//clef_pos = pos;
+    		pos = matchClefsSimple(staff, tpl_clef, proj, lines, min, h_clef, w_clef, matchingThreshold, "clef", vote);
+    		clef_pos = pos;
 			proj = verticalProjection(staff, strip_height, width);
     	}
     	else
     		pos = clef_pos;
-
 		
-    	// QUARTER NOTES		
+    	// KEY SIGNATURE
+    	if (firststaff) {
+			proj = verticalProjection(staff, strip_height, width);
+			matchKeySignature(staff, tpl_sharp, proj, lines, min, h_sharp, w_sharp, 0.4f, pos);
+    	}
+    	
+    	
+       	resultbmp = Bitmap.createBitmap(width, strip_height, Bitmap.Config.RGB_565);
+		resultbmp.setPixels(staff, 0, width, 0, 0, width, strip_height);
+		saveToFile(resultbmp, "post_keysig_"+staff_num+".png");
+		
+    	
+    	// QUARTER NOTES
     	matchingThreshold = 0.25f;
     	duration = 16;
     	matchNotes(staff, tpl_4, tpl_dot, proj, lines, min, h_4, w_4, h_dot, w_dot, matchingThreshold, "1_4", pos, duration);
     	proj = verticalProjection(staff, strip_height, width);
     	
+    	/*
 		resultbmp = Bitmap.createBitmap(width, strip_height, Bitmap.Config.RGB_565);
 		resultbmp.setPixels(staff, 0, width, 0, 0, width, strip_height);
 		saveToFile(resultbmp, "post_quarter_"+staff_num+".png");
+		*/
 		
-    	// HALF NOTES		    	
+    	// HALF NOTES
     	matchingThreshold = 0.35f;
     	duration = 32;
     	matchNotes(staff, tpl_2, tpl_dot, proj, lines, min, h_2, w_2, h_dot, w_dot, matchingThreshold, "1_2", pos, duration); 	
     	proj = verticalProjection(staff, strip_height, width);
     	
+    	/*
     	resultbmp = Bitmap.createBitmap(width, strip_height, Bitmap.Config.RGB_565);
 		resultbmp.setPixels(staff, 0, width, 0, 0, width, strip_height);
 		saveToFile(resultbmp, "post_half_"+staff_num+".png");
+		*/
     	
-    	// FULL NOTES		
+    	// FULL NOTES
     	matchingThreshold = 0.35f;    	
     	duration = 64;
     	matchNotes(staff, tpl_1, tpl_dot, proj, lines, min, h_1, w_1, h_dot, w_dot, matchingThreshold, "1_1", pos, duration);	
     	proj = verticalProjection(staff, strip_height, width);
     	
+    	/*
     	resultbmp = Bitmap.createBitmap(width, strip_height, Bitmap.Config.RGB_565);
 		resultbmp.setPixels(staff, 0, width, 0, 0, width, strip_height);
 		saveToFile(resultbmp, "post_full_"+staff_num+".png");
+		*/
     	
 		    	/*
 		    	// BAR LINES
@@ -3296,21 +3312,17 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
 		    	proj = verticalProjection(staff, strip_height, width);
 		    			*/
     	
+    	// plausibility check accidentals vs time signature (C)
+    	if ((first_sym - clef_pos) < 5*staff_space) {
     	
-    	matchingThreshold = 0.3f;
-		    	//int time = matchTimeSignature(staff, proj, lines, pos, matchingThreshold);
-		    	
-		    	//proj = verticalProjection(staff, strip_height, width);
-
-    	// KEY SIGNATURE
-    	if (firststaff) {
-			proj = verticalProjection(staff, strip_height, width);
-			matchKeySignature(staff, tpl_sharp, proj, lines, min, h_sharp, w_sharp, 0.4f, pos);
+	    	keys = new int[7][2];
+	    	key_cnt = 0;
+	    	sigstring = "";
+	    	
     	}
-	
+
+		
     	
-    	
-    	result = staff;
     	firststaff = false;
     }
 
@@ -3494,10 +3506,7 @@ public void matchNotes(int[] staff, int[] tpl, int[] dot, int[] proj, int[] line
     			idx+=width;
     		
     	}
-    	
-    	feedback = idx;
-    	
-    	
+   	
     	
     	// BACKWARD PASS
     	idx = (height-1)*width-2;
@@ -3845,7 +3854,6 @@ public int[] deskewImage(int[] pixels)  {
 	    	if (s > 0)
 	    		d = max_pos-offset_right[s-1];
 	    	offset += d;
-	    	offsets += s + "th strip:" + d + ", ";
 	    		    
 	    	l += 32;
 	    	r += 32;
@@ -3923,7 +3931,6 @@ public int[] deskewImage(int[] pixels)  {
 	    	if (s > 0)
 	    		d = max_pos-offset_left[s-1];
 	    	offset -= d;
-	    	offsets += s + "th strip:" + d + ", ";
 	    		    
 	    	l -= 32;
 	    	r -= 32;
@@ -4401,6 +4408,110 @@ public int[] deskewImage(int[] pixels)  {
     	
     
     }
+    
+    public Bitmap loadTemplate(String filename) {
+    	
+    	Bitmap tplbmp = null;
+    	
+    	try {
+        	File sdcard = Environment.getExternalStorageDirectory();
+        	File dir = new File (sdcard.getAbsolutePath() + "/perfomr/data/templates");
+        	File file = new File(dir, filename);
+        	String source = file.toString();
+        	tplbmp = BitmapFactory.decodeFile(source);
+        	       	
+    		} catch (Exception e) {
+			    	e.printStackTrace();
+			}
+	    	catch (OutOfMemoryError e) {
+		    	msg = Message.obtain();
+				msg.what = 667;
+				msg.obj = "Sorry, I ran out of memory. Do you want me to try at a lower resolution?";
+				progressHandler.sendMessage(msg);
+				
+		    }
+    		
+    		return tplbmp;
+    	
+    }
+    
+    private void loadTemplates() {
+		
+		Bitmap tplbmp;
+		
+    	tplbmp = loadTemplate("sym_clef.png");
+		h_clef = 8*staff_space;
+    	ratio = (float) tplbmp.getHeight()/h_clef;
+    	w_clef = (int) (tplbmp.getWidth() / ratio);
+    	tpl_clef = new int[w_clef*h_clef];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_clef, h_clef, false);
+    	tplbmp.getPixels(tpl_clef, 0, w_clef, 0, 0, w_clef, h_clef);
+    	
+    	tplbmp = loadTemplate("sym_dot.png");
+    	h_dot = 4*staff_height;
+    	ratio = (float) tplbmp.getHeight()/h_dot;
+    	w_dot = (int) (tplbmp.getWidth() / ratio);
+    	tpl_dot = new int[w_dot*h_dot];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_dot, h_dot, false);
+    	tplbmp.getPixels(tpl_dot, 0, w_dot, 0, 0, w_dot, h_dot);
+		
+    	tplbmp = loadTemplate("nh1_4.png");
+    	h_4 = staff_space+2*staff_height;
+    	ratio = (float) tplbmp.getHeight()/h_4;
+    	w_4 = (int) (tplbmp.getWidth() / ratio);
+    	tpl_4 = new int[w_4*h_4];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_4, h_4, false);
+    	tplbmp.getPixels(tpl_4, 0, w_4, 0, 0, w_4, h_4);
+    	
+    	tplbmp = loadTemplate("nh1_2.png");
+    	h_2 = staff_space+2*staff_height;
+    	ratio = (float) tplbmp.getHeight()/h_2;
+    	w_2 = (int) (tplbmp.getWidth() / ratio);
+    	tpl_2 = new int[w_2*h_2];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_2, h_2, false);
+    	tplbmp.getPixels(tpl_2, 0, w_2, 0, 0, w_2, h_2);
+    		
+    	tplbmp = loadTemplate("nh1_1.png");
+    	h_1 = staff_space+2*staff_height;
+    	ratio = (float) tplbmp.getHeight()/h_1;
+    	w_1 = (int) (tplbmp.getWidth() / ratio);
+    	tpl_1 = new int[w_1*h_1];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_1, h_1, false);
+    	tplbmp.getPixels(tpl_1, 0, w_1, 0, 0, w_1, h_1);
+    	
+    	tplbmp = loadTemplate("rest.png");
+    	h_rest = staff_space/2;
+    	ratio = (float) tplbmp.getHeight()/h_rest;
+    	w_rest = (int) (tplbmp.getWidth() / ratio);
+    	tpl_rest = new int[w_rest*h_rest];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_rest, h_rest, false);
+    	tplbmp.getPixels(tpl_rest, 0, w_rest, 0, 0, w_rest, h_rest);
+    	
+    	tplbmp = loadTemplate("qu_rest.png");
+    	h_qu_rest = staff_space*3+3*staff_height;
+    	ratio = (float) tplbmp.getHeight()/h_qu_rest;
+    	w_qu_rest = (int) (tplbmp.getWidth() / ratio);
+    	tpl_qu_rest = new int[w_qu_rest*h_qu_rest];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_qu_rest, h_qu_rest, false);
+    	tplbmp.getPixels(tpl_qu_rest, 0, w_qu_rest, 0, 0, w_qu_rest, h_qu_rest);
+    	
+    	tplbmp = loadTemplate("acc_sh.png");
+    	h_sharp = staff_space/2;
+    	ratio = (float) tplbmp.getHeight()/h_sharp;
+    	w_sharp = (int) (tplbmp.getWidth() / ratio);
+    	tpl_sharp = new int[w_sharp*h_sharp];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_sharp, h_sharp, false);
+    	tplbmp.getPixels(tpl_sharp, 0, w_sharp, 0, 0, w_sharp, h_sharp);
+		
+    	tplbmp = loadTemplate("acc_fl.png");
+    	h_flat = staff_space/2;
+    	ratio = (float) tplbmp.getHeight()/h_flat;
+    	w_flat = (int) (tplbmp.getWidth() / ratio);
+    	tpl_flat = new int[w_flat*h_flat];
+    	tplbmp = Bitmap.createScaledBitmap(tplbmp, w_flat, h_flat, false);
+    	tplbmp.getPixels(tpl_flat, 0, w_flat, 0, 0, w_flat, h_flat);
+    	
+	}
     
 }
 
